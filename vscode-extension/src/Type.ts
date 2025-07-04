@@ -6,7 +6,8 @@
 export enum ActionType {
     CLOSE = "CLOSE",        // 关闭文件
     OPEN = "OPEN",          // 打开文件
-    NAVIGATE = "NAVIGATE"   // 光标导航
+    NAVIGATE = "NAVIGATE",  // 光标导航
+    SCROLL = "SCROLL"       // 滚动操作
 }
 
 /**
@@ -40,6 +41,12 @@ export class EditorState {
     public source: SourceType;        // 消息来源枚举
     public isActive: boolean;         // IDE是否处于活跃状态
     public timestamp: string;         // 时间戳 (yyyy-MM-dd HH:mm:ss.SSS)
+    
+    // 滚动位置信息
+    public scrollTop?: number;        // 垂直滚动位置（像素）
+    public scrollLeft?: number;       // 水平滚动位置（像素）
+    public visibleRangeStart?: number; // 可见区域起始行
+    public visibleRangeEnd?: number;   // 可见区域结束行
 
     // 平台兼容路径缓存
     private _compatiblePath?: string;
@@ -51,7 +58,11 @@ export class EditorState {
         column: number,
         source: SourceType = SourceType.VSCODE,
         isActive: boolean = false,
-        timestamp: string = formatTimestamp()
+        timestamp: string = formatTimestamp(),
+        scrollTop?: number,
+        scrollLeft?: number,
+        visibleRangeStart?: number,
+        visibleRangeEnd?: number
     ) {
         this.action = action;
         this.filePath = filePath;
@@ -60,6 +71,10 @@ export class EditorState {
         this.source = source;
         this.isActive = isActive;
         this.timestamp = timestamp;
+        this.scrollTop = scrollTop;
+        this.scrollLeft = scrollLeft;
+        this.visibleRangeStart = visibleRangeStart;
+        this.visibleRangeEnd = visibleRangeEnd;
     }
 
     /**

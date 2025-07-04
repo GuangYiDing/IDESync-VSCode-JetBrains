@@ -9,9 +9,11 @@ import {Logger} from './Logger';
  */
 export class FileOperationHandler {
     private logger: Logger;
+    private editorStateManager: any; // 添加对EditorStateManager的引用
 
-    constructor(logger: Logger) {
+    constructor(logger: Logger, editorStateManager?: any) {
         this.logger = logger;
+        this.editorStateManager = editorStateManager;
     }
 
 
@@ -19,6 +21,8 @@ export class FileOperationHandler {
         try {
             if (state.action === ActionType.CLOSE) {
                 return this.handleFileClose(state);
+            } else if (state.action === ActionType.SCROLL) {
+                return this.handleScrollSync(state);
             } else {
                 return this.handleFileOpenOrNavigate(state);
             }
@@ -75,6 +79,17 @@ export class FileOperationHandler {
             this.logger.info(`✅ 成功同步到文件: ${state.filePath}, 行${state.line}, 列${state.column}`);
         } catch (error) {
             this.logger.warn('处理接收状态失败:', error as Error);
+        }
+    }
+
+    /**
+     * 处理滚动同步
+     */
+    private async handleScrollSync(state: EditorState): Promise<void> {
+        this.logger.info(`准备同步滚动: ${state.filePath}, 可见范围: ${state.visibleRangeStart}-${state.visibleRangeEnd}`);
+        
+        if (this.editorStateManager) {
+            this.editorStateManager.applyScrollState(state);
         }
     }
 

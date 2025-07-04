@@ -110,6 +110,29 @@ export class EventListenerManager {
             })
         );
 
+        // 监听编辑器滚动事件
+        this.disposables.push(
+            vscode.window.onDidChangeTextEditorVisibleRanges((event) => {
+                if (event.textEditor.document.uri.scheme !== 'file') {
+                    return;
+                }
+                
+                if (event.textEditor === vscode.window.activeTextEditor) {
+                    const visibleRanges = event.visibleRanges;
+                    if (visibleRanges.length > 0) {
+                        const firstRange = visibleRanges[0];
+                        
+                        const state = this.editorStateManager.createScrollState(
+                            event.textEditor, this.isActive
+                        );
+                        
+                        this.logger.info(`滚动事件: 可见范围 ${firstRange.start.line}-${firstRange.end.line}`);
+                        this.editorStateManager.debouncedUpdateState(state);
+                    }
+                }
+            })
+        );
+
         this.logger.info('编辑器监听器设置完成');
     }
 

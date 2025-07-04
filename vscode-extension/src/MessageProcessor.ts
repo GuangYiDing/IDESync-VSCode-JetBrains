@@ -52,7 +52,11 @@ export class MessageProcessor {
             rawData.column,
             rawData.source,
             rawData.isActive,
-            rawData.timestamp
+            rawData.timestamp,
+            rawData.scrollTop,
+            rawData.scrollLeft,
+            rawData.visibleRangeStart,
+            rawData.visibleRangeEnd
         );
     }
 

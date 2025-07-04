@@ -12,7 +12,8 @@ import java.util.*
 enum class ActionType {
     CLOSE,      // 关闭文件
     OPEN,       // 打开文件
-    NAVIGATE    // 光标导航
+    NAVIGATE,   // 光标导航
+    SCROLL      // 滚动操作
 }
 
 /**
@@ -45,7 +46,13 @@ data class EditorState(
     val column: Int,                // 列号（从0开始）
     val source: SourceType = SourceType.JETBRAINS, // 消息来源枚举
     val isActive: Boolean = false,  // IDE是否处于活跃状态
-    val timestamp: String = formatTimestamp() // 时间戳 (yyyy-MM-dd HH:mm:ss.SSS)
+    val timestamp: String = formatTimestamp(), // 时间戳 (yyyy-MM-dd HH:mm:ss.SSS)
+    
+    // 滚动位置信息
+    val scrollTop: Int? = null,        // 垂直滚动位置（像素）
+    val scrollLeft: Int? = null,       // 水平滚动位置（像素）
+    val visibleRangeStart: Int? = null, // 可见区域起始行
+    val visibleRangeEnd: Int? = null    // 可见区域结束行
 ) {
     // 平台兼容路径缓存
     @Transient

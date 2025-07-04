@@ -47,6 +47,39 @@ export class EditorStateManager {
         );
     }
 
+    /**
+     * 创建滚动状态
+     */
+    createScrollState(
+        editor: vscode.TextEditor,
+        isActive: boolean
+    ): EditorState {
+        const position = editor.selection.active;
+        const visibleRanges = editor.visibleRanges;
+        
+        let visibleRangeStart: number | undefined;
+        let visibleRangeEnd: number | undefined;
+        
+        if (visibleRanges.length > 0) {
+            visibleRangeStart = visibleRanges[0].start.line;
+            visibleRangeEnd = visibleRanges[0].end.line;
+        }
+
+        return new EditorState(
+            ActionType.SCROLL,
+            editor.document.uri.fsPath,
+            position.line,
+            position.character,
+            SourceType.VSCODE,
+            isActive,
+            formatTimestamp(),
+            undefined, // scrollTop
+            undefined, // scrollLeft
+            visibleRangeStart,
+            visibleRangeEnd
+        );
+    }
+
     createCloseState(filePath: string, isActive: boolean): EditorState {
         return new EditorState(
             ActionType.CLOSE,
@@ -119,6 +152,36 @@ export class EditorStateManager {
             );
             this.updateState(state);
             this.logger.info(`发送当前状态: ${activeEditor.document.uri.fsPath}`);
+        }
+    }
+
+    /**
+     * 应用滚动状态到编辑器
+     */
+    applyScrollState(state: EditorState) {
+        const activeEditor = vscode.window.activeTextEditor;
+        if (!activeEditor || activeEditor.document.uri.fsPath !== state.getCompatiblePath()) {
+            return;
+        }
+        
+        if (state.visibleRangeStart !== undefined && state.visibleRangeEnd !== undefined) {
+            try {
+                // 确保行号在有效范围内
+                const maxLine = activeEditor.document.lineCount - 1;
+                const startLine = Math.max(0, Math.min(state.visibleRangeStart, maxLine));
+                const endLine = Math.max(0, Math.min(state.visibleRangeEnd, maxLine));
+                
+                const startPosition = new vscode.Position(startLine, 0);
+                const endPosition = new vscode.Position(endLine, 0);
+                const range = new vscode.Range(startPosition, endPosition);
+                
+                // 滚动到指定范围
+                activeEditor.revealRange(range, vscode.TextEditorRevealType.Default);
+                
+                this.logger.info(`应用滚动: 范围 ${startLine}-${endLine}`);
+            } catch (error) {
+                this.logger.warn(`应用滚动状态时发生错误: ${error}`);
+            }
         }
     }
 
