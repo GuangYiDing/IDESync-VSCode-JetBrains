@@ -6,6 +6,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.platform.ide.progress.ModalTaskOwner.project
+import java.awt.Point
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -59,6 +60,33 @@ class EditorStateManager(
             source = SourceType.JETBRAINS,
             isActive = isActive,
             timestamp = formatTimestamp()
+        )
+    }
+
+    /**
+     * 创建滚动状态对象
+     */
+    fun createScrollState(
+        editor: Editor,
+        file: VirtualFile,
+        isActive: Boolean = false
+    ): EditorState {
+        val visibleArea = editor.scrollingModel.visibleArea
+        val startLine = editor.xyToLogicalPosition(Point(0, visibleArea.y)).line
+        val endLine = editor.xyToLogicalPosition(Point(0, visibleArea.y + visibleArea.height)).line
+        
+        return EditorState(
+            action = ActionType.SCROLL,
+            filePath = file.path,
+            line = editor.caretModel.logicalPosition.line,
+            column = editor.caretModel.logicalPosition.column,
+            source = SourceType.JETBRAINS,
+            isActive = isActive,
+            timestamp = formatTimestamp(),
+            scrollTop = visibleArea.y,
+            scrollLeft = visibleArea.x,
+            visibleRangeStart = startLine,
+            visibleRangeEnd = endLine
         )
     }
 
@@ -147,6 +175,43 @@ class EditorStateManager(
             )
             this.updateState(state)
             log.info("发送当前状态: ${file.path}")
+        }
+    }
+
+    /**
+     * 应用滚动状态到编辑器
+     */
+    fun applyScrollState(state: EditorState) {
+        val editor = FileEditorManager.getInstance(project).selectedTextEditor
+        if (editor != null) {
+            val currentFile = FileEditorManager.getInstance(project).selectedFiles.firstOrNull()
+            if (currentFile != null && currentFile.path == state.getCompatiblePath()) {
+                
+                if (state.visibleRangeStart != null && state.visibleRangeEnd != null) {
+                    try {
+                        val startLine = state.visibleRangeStart
+                        val scrollingModel = editor.scrollingModel
+                        
+                        // 确保行号在有效范围内
+                        val maxLine = editor.document.lineCount - 1
+                        val targetLine = if (startLine > maxLine) maxLine else startLine
+                        
+                        if (targetLine >= 0) {
+                            val startOffset = editor.document.getLineStartOffset(targetLine)
+                            
+                            // 滚动到指定位置
+                            scrollingModel.scrollTo(
+                                editor.offsetToLogicalPosition(startOffset),
+                                com.intellij.openapi.editor.ScrollType.MAKE_VISIBLE
+                            )
+                            
+                            log.info("应用滚动: 范围 ${state.visibleRangeStart}-${state.visibleRangeEnd}")
+                        }
+                    } catch (e: Exception) {
+                        log.warn("应用滚动状态时发生错误: ${e.message}")
+                    }
+                }
+            }
         }
     }
 

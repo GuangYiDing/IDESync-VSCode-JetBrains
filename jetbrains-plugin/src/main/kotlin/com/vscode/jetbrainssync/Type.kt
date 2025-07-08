@@ -12,7 +12,8 @@ import java.util.*
 enum class ActionType {
     CLOSE,      // 关闭文件
     OPEN,       // 打开文件
-    NAVIGATE    // 光标导航
+    NAVIGATE,   // 光标导航
+    SCROLL      // 滚动操作
 }
 
 /**
@@ -45,7 +46,13 @@ data class EditorState(
     val column: Int,                // 列号（从0开始）
     val source: SourceType = SourceType.JETBRAINS, // 消息来源枚举
     val isActive: Boolean = false,  // IDE是否处于活跃状态
-    val timestamp: String = formatTimestamp() // 时间戳 (yyyy-MM-dd HH:mm:ss.SSS)
+    val timestamp: String = formatTimestamp(), // 时间戳 (yyyy-MM-dd HH:mm:ss.SSS)
+    
+    // 滚动位置信息
+    val scrollTop: Int? = null,        // 垂直滚动位置（像素）
+    val scrollLeft: Int? = null,       // 水平滚动位置（像素）
+    val visibleRangeStart: Int? = null, // 可见区域起始行
+    val visibleRangeEnd: Int? = null    // 可见区域结束行
 ) {
     // 平台兼容路径缓存
     @Transient
@@ -102,6 +109,8 @@ data class EditorState(
 
     /**
      * 转换路径为IDEA格式
+     * VSCode格式: c:\Users\LEE\Documents\...
+     * IDEA格式: C:/Users/LEE/Documents/...
      * 处理跨平台路径兼容性，确保路径格式统一
      */
     private fun convertToIdeaFormat(path: String): String {
@@ -122,12 +131,12 @@ data class EditorState(
         } else if (isMacOS || isLinux) {
             // macOS/Linux: 确保使用正斜杠，保持Unix路径格式
             ideaPath = ideaPath.replace('\\', '/')
-            
+
             // 确保路径以 / 开头（Unix绝对路径）
             if (!ideaPath.startsWith('/')) {
                 ideaPath = "/$ideaPath"
             }
-            
+
             // 清理重复的斜杠
             ideaPath = ideaPath.replace(Regex("/+"), "/")
         }

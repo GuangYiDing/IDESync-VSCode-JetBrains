@@ -23,7 +23,7 @@ class VSCodeJetBrainsSyncService(private val project: Project) : Disposable {
 
     // 核心组件
     private val editorStateManager = EditorStateManager(project)
-    private val fileOperationHandler = FileOperationHandler(project)
+    private val fileOperationHandler = FileOperationHandler(project, editorStateManager)
     private val messageProcessor = MessageProcessor(fileOperationHandler)
     private val webSocketManager = WebSocketConnectionManager(project, messageProcessor)
     private val eventListenerManager = EventListenerManager(project, editorStateManager)

@@ -6,7 +6,8 @@
 export enum ActionType {
     CLOSE = "CLOSE",        // 关闭文件
     OPEN = "OPEN",          // 打开文件
-    NAVIGATE = "NAVIGATE"   // 光标导航
+    NAVIGATE = "NAVIGATE",  // 光标导航
+    SCROLL = "SCROLL"       // 滚动操作
 }
 
 /**
@@ -40,6 +41,12 @@ export class EditorState {
     public source: SourceType;        // 消息来源枚举
     public isActive: boolean;         // IDE是否处于活跃状态
     public timestamp: string;         // 时间戳 (yyyy-MM-dd HH:mm:ss.SSS)
+    
+    // 滚动位置信息
+    public scrollTop?: number;        // 垂直滚动位置（像素）
+    public scrollLeft?: number;       // 水平滚动位置（像素）
+    public visibleRangeStart?: number; // 可见区域起始行
+    public visibleRangeEnd?: number;   // 可见区域结束行
 
     // 平台兼容路径缓存
     private _compatiblePath?: string;
@@ -51,7 +58,11 @@ export class EditorState {
         column: number,
         source: SourceType = SourceType.VSCODE,
         isActive: boolean = false,
-        timestamp: string = formatTimestamp()
+        timestamp: string = formatTimestamp(),
+        scrollTop?: number,
+        scrollLeft?: number,
+        visibleRangeStart?: number,
+        visibleRangeEnd?: number
     ) {
         this.action = action;
         this.filePath = filePath;
@@ -60,6 +71,10 @@ export class EditorState {
         this.source = source;
         this.isActive = isActive;
         this.timestamp = timestamp;
+        this.scrollTop = scrollTop;
+        this.scrollLeft = scrollLeft;
+        this.visibleRangeStart = visibleRangeStart;
+        this.visibleRangeEnd = visibleRangeEnd;
     }
 
     /**
@@ -112,6 +127,8 @@ export class EditorState {
 
     /**
      * 转换路径为VSCode格式
+     * IDEA格式: C:/Users/LEE/Documents/...
+     * VSCode格式: c:\Users\LEE\Documents\...
      * 处理跨平台路径兼容性
      */
     private convertToVSCodeFormat(path: string): string {
@@ -131,18 +148,18 @@ export class EditorState {
         } else if (isMacOS || isLinux) {
             // macOS/Linux: 确保使用正斜杠，移除Windows盘符格式
             vscodePath = vscodePath.replace(/\\/g, '/');
-            
+
             // 移除Windows盘符（如果存在）并转换为Unix路径
             if (/^[A-Za-z]:[\/\\]/.test(vscodePath)) {
                 // 例如: C:/Users/... -> /Users/... 或 c:\Users\... -> /Users/...
                 vscodePath = vscodePath.substring(2).replace(/\\/g, '/');
             }
-            
+
             // 确保路径以 / 开头
             if (!vscodePath.startsWith('/')) {
                 vscodePath = '/' + vscodePath;
             }
-            
+
             // 清理重复的斜杠
             vscodePath = vscodePath.replace(/\/+/g, '/');
         }

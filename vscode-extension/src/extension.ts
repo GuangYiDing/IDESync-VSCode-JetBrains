@@ -53,7 +53,7 @@ export class VSCodeJetBrainsSync {
      */
     private initializeComponents() {
         this.editorStateManager = new EditorStateManager(this.logger);
-        this.fileOperationHandler = new FileOperationHandler(this.logger);
+        this.fileOperationHandler = new FileOperationHandler(this.logger, this.editorStateManager);
         this.messageProcessor = new MessageProcessor(this.logger, this.fileOperationHandler);
         this.webSocketManager = new WebSocketServerManager(this.logger, this.messageProcessor);
         this.eventListenerManager = new EventListenerManager(this.logger, this.editorStateManager);

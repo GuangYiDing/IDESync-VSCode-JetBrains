@@ -14,7 +14,10 @@ import java.io.File
  * 文件操作处理器
  * 负责处理文件的打开、关闭和导航操作
  */
-class FileOperationHandler(private val project: Project) {
+class FileOperationHandler(
+    private val project: Project,
+    private val editorStateManager: EditorStateManager
+) {
     private val log: Logger = Logger.getInstance(FileOperationHandler::class.java)
 
     /**
@@ -25,6 +28,7 @@ class FileOperationHandler(private val project: Project) {
             try {
                 when (state.action) {
                     ActionType.CLOSE -> handleFileClose(state)
+                    ActionType.SCROLL -> handleScrollSync(state)
                     else -> handleFileOpenOrNavigate(state)
                 }
             } catch (e: Exception) {
@@ -116,6 +120,14 @@ class FileOperationHandler(private val project: Project) {
         }
     }
 
+
+    /**
+     * 处理滚动同步
+     */
+    private fun handleScrollSync(state: EditorState) {
+        log.info("准备同步滚动: ${state.filePath}, 可见范围: ${state.visibleRangeStart}-${state.visibleRangeEnd}")
+        editorStateManager.applyScrollState(state)
+    }
 
     /**
      * 通过文件名在项目中查找并关闭文件

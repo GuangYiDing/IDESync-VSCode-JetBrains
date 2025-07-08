@@ -26,6 +26,8 @@ class EventListenerManager(
 
     // 全局唯一的光标监听器引用
     private var currentCaretListener: com.intellij.openapi.editor.event.CaretListener? = null
+    // 全局唯一的滚动监听器引用
+    private var currentScrollListener: com.intellij.openapi.editor.event.VisibleAreaListener? = null
     private var currentEditor: Editor? = null
     private var messageBusConnection: MessageBusConnection? = null
 
@@ -56,6 +58,7 @@ class EventListenerManager(
                         log.info("准备发送打开消息: $state")
                         editorStateManager.updateState(state)
                         setupCaretListener(it)
+                        setupScrollListener(it)
                     }
                 }
 
@@ -86,6 +89,7 @@ class EventListenerManager(
                             log.info("准备发送导航消息: $state")
                             editorStateManager.debouncedUpdateState(state)
                             setupCaretListener(it)
+                            setupScrollListener(it)
                         }
                     }
                 }
@@ -147,7 +151,62 @@ class EventListenerManager(
                 log.warn("销毁光标监听器时出现异常: ${e.message}")
             }
             currentCaretListener = null
-            currentEditor = null
+        }
+    }
+
+    /**
+     * 设置滚动监听器
+     * 全局唯一，每次设置新监听器时会销毁之前的监听器
+     */
+    private fun setupScrollListener(editor: Editor) {
+        log.info("开始设置滚动监听器")
+
+        // 销毁之前的滚动监听器
+        destroyCurrentScrollListener()
+
+        // 创建新的滚动监听器
+        val newScrollListener = object : com.intellij.openapi.editor.event.VisibleAreaListener {
+            override fun visibleAreaChanged(event: com.intellij.openapi.editor.event.VisibleAreaEvent) {
+                log.info("事件-滚动改变")
+                // 动态获取当前真正的文件
+                val currentFile = getCurrentFile(event.editor)
+                if (currentFile != null) {
+                    log.info("事件-滚动改变: 当前文件: ${currentFile.path}")
+
+                    val state = editorStateManager.createScrollState(
+                        event.editor, currentFile, isActive.get()
+                    )
+                    log.info("准备发送滚动消息: $state")
+                    editorStateManager.debouncedUpdateState(state)
+                } else {
+                    log.warn("事件-滚动改变：无法获取当前文件，跳过处理")
+                }
+            }
+        }
+
+        // 添加新的监听器
+        editor.scrollingModel.addVisibleAreaListener(newScrollListener)
+
+        // 保存引用以便后续管理
+        currentScrollListener = newScrollListener
+        currentEditor = editor
+
+        log.info("滚动监听器设置完成")
+    }
+
+    /**
+     * 销毁当前的滚动监听器
+     */
+    private fun destroyCurrentScrollListener() {
+        if (currentScrollListener != null && currentEditor != null) {
+            log.info("销毁之前的滚动监听器")
+            try {
+                currentEditor!!.scrollingModel.removeVisibleAreaListener(currentScrollListener!!)
+                log.info("滚动监听器销毁成功")
+            } catch (e: Exception) {
+                log.warn("销毁滚动监听器时出现异常: ${e.message}")
+            }
+            currentScrollListener = null
         }
     }
 
@@ -210,6 +269,8 @@ class EventListenerManager(
         messageBusConnection?.disconnect()
         messageBusConnection?.dispose()
         destroyCurrentCaretListener()
+        destroyCurrentScrollListener()
+        currentEditor = null
         log.info("EventListenerManager资源清理完成")
     }
 }

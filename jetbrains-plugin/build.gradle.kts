@@ -1,6 +1,7 @@
 plugins {
     id("org.jetbrains.intellij") version "1.17.2"
-    kotlin("jvm") version "1.9.22"
+//    kotlin("jvm") version "1.9.22"
+    kotlin("jvm") version "2.1.0"
     id("com.github.ben-manes.versions") version "0.51.0"
 }
 
@@ -14,7 +15,8 @@ repositories {
 
 // Configure Gradle IntelliJ Plugin
 intellij {
-    version.set("2023.3")
+    localPath.set("/Applications/IntelliJ IDEA.app/Contents")
+//    version.set("2023.3")
     downloadSources.set(true)
     instrumentCode.set(false) // Disable code instrumentation temporarily
 }
@@ -74,7 +76,10 @@ tasks {
 
     runIde {
         // Configure JVM arguments for running the plugin
-        jvmArgs("-Xmx2g")
+        jvmArgs("-Xmx2g",
+            "--add-opens=java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED",
+            "--add-opens=java.base/jdk.internal.org.objectweb.asm.tree=ALL-UNNAMED",
+            "-javaagent:/Applications/mac2022-2023/ja-netfilter.jar=jetbrains")
     }
     
     processResources {
